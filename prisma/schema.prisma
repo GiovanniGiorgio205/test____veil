@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Applications {
+  ID              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ApplicationName String?
+  Providers       Provider[]
+  Secret_Key      String      @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  API_Token       String
+  Created_At      DateTime?   @default(now()) @db.Timestamptz(6)
+  Updated_At      DateTime?   @default(now()) @db.Timetz(6)
+  WS_ID           String?     @db.Uuid
+  Workspaces      Workspaces? @relation(fields: [WS_ID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "ws_fk")
+}
+
+model Users {
+  id                 String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  login              String?     @unique
+  email              String?
+  display_name       String?
+  encrypted_password String?
+  recovery_code      String?
+  role               String?     @default("12k-904")
+  created_at         DateTime?   @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime?   @default(now()) @db.Timestamptz(6)
+  instance_id        String?     @db.Uuid
+  birthday_date      DateTime?   @db.Timestamptz(6)
+  sessions           Session[]
+  Workspaces         Workspaces?
+}
+
+model Workspaces {
+  ID           String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  Name         String?
+  Domain_Name  String?
+  Description  String?
+  Access_Token String?
+  WS_Type      WS_Type?
+  UID          String?        @unique @db.Uuid
+  Applications Applications[]
+  Users        Users?         @relation(fields: [UID], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([UID], map: "fki_uid_FK")
+}
+
+model Session {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionToken String   @unique
+  userId       String   @db.Uuid
+  expires      DateTime
+  user         Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model AppUsers {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  login              String?
+  email              String?
+  display_name       String?
+  encrypted_password String?
+  recovery_code      String?
+  role               String?   @default("12k-904")
+  created_at         DateTime? @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime? @default(now()) @db.Timestamptz(6)
+  instance_id        String?   @db.Uuid
+  birthday_date      DateTime? @db.Timestamptz(6)
+
+  @@ignore
+}
+
+enum Provider {
+  Credentials
+  Google
+  Github
+  Microsoft
+  X
+  Spotify
+}
+
+enum WS_Type {
+  Personal
+  Company
+  Enterprise
+}
